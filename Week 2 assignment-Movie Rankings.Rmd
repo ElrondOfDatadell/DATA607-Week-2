@@ -1,0 +1,67 @@
+---
+title: "Week 2"
+author: "Nick"
+date: "2023-02-01"
+---
+
+```{r}
+
+library(RMySQL)
+library(tidyverse)
+```
+### Step 1: 
+Define local database and log in as user DATA607.
+
+```{r}
+
+localdb_movies = dbConnect(MySQL(), user='DATA607', password=readLines("C:/data/SQLpass.txt"), dbname='week2_movies', host='localhost')
+
+```
+
+
+
+### STEP 2 :
+Query localdb and save table into dataframe. Then disconnect as there is no need for additional data pull
+
+```{r}
+moviedf <- dbGetQuery(localdb_movies, "select * FROM week2_movies")
+dbDisconnect(localdb_movies)
+```
+
+### STEP 3:
+Looking through the data shows some entries were missing and non-numeric. Dataframe to be modified to include numeric data for analysis. 
+
+```{r}
+
+moviedf <- moviedf %>% mutate_if(is.character, as.numeric)
+```
+### STEP 4:
+This is an attempt to see if there is correlation of how respondents rated the movies
+
+``` {r}
+movie.cor = cor(moviedf[2:6],use = "pairwise", method ="spearman")
+
+library(corrplot)
+plot<-corrplot(movie.cor, addCoef.col = 1,tl.cex = 0.5, method='number')
+```
+
+### STEP 5: 
+Add one more row including average rating of each movie and plot on bar graph to summarize.
+
+```{r}
+
+moviedf<-rbind(moviedf, "Average" = colMeans(moviedf, na.rm=TRUE))
+moviedf[[1]][11]<-"Average"
+
+movie_names<-colnames(moviedf[2:7])
+average_ranks<-as.numeric(moviedf[11,2:7])
+
+plot_df<- data.frame(movie = c(movie_names),
+                    average = c(average_ranks))
+
+ggplot(plot_df, mapping=aes(x=average,y=movie)) + 
+  geom_bar(stat = "identity") + ggtitle("Average Movie Ratings") + xlab("Average Rating")+ylab("Movie")
+```
+
+### SUMMARY: 
+In this sample Empire Strikes Back was the highest rated movie overall, followed by Batman: The Dark Knight. A goal of the correlation plot was to see if the position of a movie in its trilogy (1st, 2nd or 3rd movie) could indicate how it was rated. Based on this sample there does not seem to be a strong correlation between how respondents rated each movie.
